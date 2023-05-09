@@ -5,9 +5,34 @@ My buffer overflow attack for the Computational Security in UFPR
 
 ## Explorando o primeiro buffer overflow
 
+Antes de tudo, vamos analisar se o programa em questão é vunerável a buffer overflow.
+
+Para isso, iremos executar o programa sem input valido e ver o que acontece.
+
+```bash
+echo "" | ./bogdb.elf
+
+Digite a senha: 
+[!] Errou...
+```
+
+Agora, iremos executar o programa com um input maior que o buffer.
+
+```bash
+python3 -c "print('A'*50)" | ./bogdb.elf
+
+Digite a senha: 
+[!] Errou...
+
+*** Parabéns, você entrou no sistema! ***
+Segmentation fault (core dumped)
+```
+
+Podemos ver que o programa é vunerável a buffer overflow.
+
 ### Objetivo
 
-Para realizar o buffer overflow e abrir uma shell, iremos seguir os seguintes passos:
+Para explorar o buffer overflow e abrir uma shell, iremos seguir os seguintes passos:
 
 1. descobrir o endereço do do buffer
 2. descobrir o endereço do registrador de retorno
@@ -95,19 +120,14 @@ Assim o endereço do registrador de retorno é `0x7fffffffdc98`
 
 ### Descobrindo a distancia entre o buffer e o registrador de retorno
 
-Para descobrirmos a distancia entre o buffer e o registrador de retorno, basta subtrair os dois endereços, entretanto, devemos lembrar que o endereço do buffer é o endereço do primeiro byte do buffer. Por isso vamos utilizar o endereço do ultimo byte do buffer.
-
-```gdb
-(gdb) p &buff[8]
-$5 = 0x7fffffffdc8b ""
-```
+Para descobrirmos a distancia entre o buffer e o registrador de retorno, basta subtrair os dois endereços:
 
 ```gdb
 (gdb) p 0x7fffffffdc98 - 0x7fffffffdc83
-$6 = 13
+$6 = 21
 ```
 
-Assim a distancia entre o buffer e o registrador de retorno é `13` bytes.
+Assim a distancia entre o buffer e o registrador de retorno é `21` bytes.
 
 ### Preenchendo o buffer
 
