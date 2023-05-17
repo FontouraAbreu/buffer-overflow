@@ -18,7 +18,7 @@ My buffer overflow attack for the Computational Security in UFPR
   - [Descobrindo o endereço do buffer](#descobrindo-o-endereço-do-buffer-1)
   - [Descobrindo o endereço do registrador de retorno](#descobrindo-o-endereço-do-registrador-de-retorno-1)
   - [Descobrindo a distancia entre o buffer e o registrador de retorno](#descobrindo-a-distancia-entre-o-buffer-e-o-registrador-de-retorno-1)
-  - [Preenchendo o buffer](#preenchendo-o-buffer-1)
+  - [Preparando o shellcode](#preparando-o-shellcode-1)
 
 ## Facilitador
 
@@ -227,6 +227,18 @@ Para executar o shellcode, vamos utilizar o seguinte comando:
 receberemos um shell com permissões do usuário que executou o programa.
 
 ## Explorando o segundo buffer overflow
+
+### Objetivo
+
+### Descobrindo o endereço do buffer
+
+### Descobrindo o endereço do registrador de retorno
+
+### Descobrindo a distancia entre o buffer e o registrador de retorno
+
+### Preparando o shellcode
+
+### Executando o shellcode
 
 ## Autores
 
