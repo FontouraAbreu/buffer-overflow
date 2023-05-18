@@ -250,12 +250,11 @@ O objetivo é conseguir executar um shellcode que faça uma shell reversa para o
 
 Como não temos o código fonte do programa, vamos utilizar o gdb para descobrir o tamanho do buffer.
 
-```gdb
-(gdb) b *main+39
-(gdb) r 1234
-(gdb) p &buff
+o tamanho máximo é 40
 
-### Descobrindo o endereço do registrador de retorno
+### Descobrindo o endereço do buffer
+
+Para descobrirmos o endereço do buffer podemos fazer:
 
 ### Descobrindo a distancia entre o buffer e o registrador de retorno
 
