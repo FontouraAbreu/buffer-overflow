@@ -15,7 +15,7 @@ My buffer overflow attack for the Computational Security in UFPR
   - [Preparando o Shellcode](#preparando-o-shellcode)
 - [Explorando o segundo buffer overflow](#explorando-o-segundo-buffer-overflow)
   - [Objetivo](#objetivo-1)
-  - [Descobrindo o endereço do buffer](#descobrindo-o-endereço-do-buffer-1)
+  - [Descobrindo o tamanho do buffer](#descobrindo-o-tamanho-do-buffer-1)
   - [Descobrindo o endereço do registrador de retorno](#descobrindo-o-endereço-do-registrador-de-retorno-1)
   - [Descobrindo a distancia entre o buffer e o registrador de retorno](#descobrindo-a-distancia-entre-o-buffer-e-o-registrador-de-retorno-1)
   - [Preparando o shellcode](#preparando-o-shellcode-1)
@@ -228,9 +228,32 @@ receberemos um shell com permissões do usuário que executou o programa.
 
 ## Explorando o segundo buffer overflow
 
+## introdução
+
+Temos um programa que executa um servidor na porta escolhida. Vamos rodar o programa e enviar comandos para o servidor através do telnet.
+
+```bash
+./bufferoverflow2.elf 1234
+```
+
+```bash
+telnet localhost 1234
+```
+
+Assim podemos enviar comandos para o servidor e receber a resposta.
+
 ### Objetivo
 
-### Descobrindo o endereço do buffer
+O objetivo é conseguir executar um shellcode que faça uma shell reversa para o nossa máquina.
+
+### Descobrindo o tamanho do buffer
+
+Como não temos o código fonte do programa, vamos utilizar o gdb para descobrir o tamanho do buffer.
+
+```gdb
+(gdb) b *main+39
+(gdb) r 1234
+(gdb) p &buff
 
 ### Descobrindo o endereço do registrador de retorno
 
